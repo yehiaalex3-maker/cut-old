@@ -30,14 +30,17 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         if (error) throw error;
         onAuth();
       } else {
-        const res = await fetch('/api/auth-register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, full_name: fullName }),
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            }
+          }
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'حدث خطأ أثناء التسجيل');
-        setSuccess('تم إنشاء الحساب بنجاح! يمكنك تسجيل الدخول الآن');
+        if (error) throw error;
+        setSuccess('تم إنشاء الحساب بنجاح! يرجى التحقق من بريدك الإلكتروني (إذا تم تفعيله) أو تسجيل الدخول.');
         setMode('login');
       }
     } catch (err: any) {
@@ -136,7 +139,7 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
 
         <div className="auth-divider"><span>أو</span></div>
 
-        <button className="google-btn" onClick={() => signInWithGoogle('MASTER Y')}>
+        <button className="google-btn" onClick={() => signInWithGoogle()}>
           <svg width="18" height="18" viewBox="0 0 18 18">
             <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.18z"/>
             <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 01-7.18-2.54H1.83v2.07A8 8 0 008.98 17z"/>
