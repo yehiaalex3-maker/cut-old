@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, LogIn, UserPlus, Scissors } from 'lucide-react';
+import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 import supabase from '../lib/supabase';
 import { signInWithGoogle } from '../lib/googleAuth';
+import SiteLogo from '../components/SiteLogo';
 
 interface AuthPageProps {
   onAuth: () => void;
@@ -59,12 +60,10 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
         transition={{ duration: 0.4 }}
       >
         <div className="auth-logo">
-          <div className="auth-logo-icon">
-            <Scissors size={28} />
-          </div>
+          <SiteLogo size={52} showText={false} />
           <div>
-            <h1>MASTER Y</h1>
-            <p>نظام تفريغ مقاسات القطع الخشبية</p>
+            <h1 style={{ fontSize: 26, fontWeight: 900, color: '#1a1a1a', letterSpacing: '-0.5px' }}>MASTER Y</h1>
+            <p style={{ fontSize: 12, color: '#9b9990', margin: 0 }}>نظام تفريغ مقاسات القطع الخشبية</p>
           </div>
         </div>
 

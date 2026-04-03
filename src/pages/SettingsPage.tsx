@@ -83,7 +83,7 @@ export default function SettingsPage({ onMenuToggle }: { onMenuToggle: () => voi
           {/* Assembly Method */}
           <motion.div className="settings-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="settings-card-header">
-              <Settings size={18} />
+              <div className="settings-card-header-icon"><Settings size={18} /></div>
               <div>
                 <h3>طريقة التجميع</h3>
                 <p>تحديد كيفية تجميع الوحدات والمقابض</p>
@@ -124,7 +124,7 @@ export default function SettingsPage({ onMenuToggle }: { onMenuToggle: () => voi
           {/* Dimensions & Deductions */}
           <motion.div className="settings-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <div className="settings-card-header">
-              <Settings size={18} />
+              <div className="settings-card-header-icon"><Settings size={18} /></div>
               <div>
                 <h3>الأبعاد والخصومات</h3>
                 <p>تحديد سمك الخامات وقيم الخصم المختلفة</p>
@@ -201,7 +201,7 @@ export default function SettingsPage({ onMenuToggle }: { onMenuToggle: () => voi
           {/* Cutting Codes */}
           <motion.div className="settings-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <div className="settings-card-header">
-              <Settings size={18} />
+              <div className="settings-card-header-icon"><Settings size={18} /></div>
               <div>
                 <h3>أكواد التقطيع</h3>
                 <p>تخصيص الرموز المستخدمة في تقارير القص (3 أكواد موحدة للضلف والشاسيه)</p>
@@ -238,7 +238,7 @@ export default function SettingsPage({ onMenuToggle }: { onMenuToggle: () => voi
           {/* Drawer Settings */}
           <motion.div className="settings-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <div className="settings-card-header">
-              <Settings size={18} />
+              <div className="settings-card-header-icon"><Settings size={18} /></div>
               <div>
                 <h3>إعدادات المفحار</h3>
                 <p>تحديد أبعاد ومسافات المفحار</p>
@@ -274,7 +274,7 @@ export default function SettingsPage({ onMenuToggle }: { onMenuToggle: () => voi
           {/* Handle Cut Settings */}
           <motion.div className="settings-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
             <div className="settings-card-header">
-              <Settings size={18} />
+              <div className="settings-card-header-icon"><Settings size={18} /></div>
               <div>
                 <h3>أبعاد الشريط والوحدة</h3>
                 <p>إعدادات قطع الشريط والمقابض</p>
