@@ -1,4 +1,4 @@
-import { Menu, Bell, User } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
@@ -10,6 +10,7 @@ interface HeaderProps {
 export default function Header({ title, subtitle, onMenuToggle, actions }: HeaderProps) {
   return (
     <header className="app-header">
+      {/* Right: menu + title */}
       <div className="header-right">
         <button onClick={onMenuToggle} className="menu-btn">
           <Menu size={20} />
@@ -19,10 +20,10 @@ export default function Header({ title, subtitle, onMenuToggle, actions }: Heade
           {subtitle && <p>{subtitle}</p>}
         </div>
       </div>
+
+      {/* Left: action buttons (e.g. حفظ التغييرات) */}
       <div className="header-actions">
         {actions}
-        <button className="icon-btn"><Bell size={18} /></button>
-        <button className="icon-btn"><User size={18} /></button>
       </div>
     </header>
   );

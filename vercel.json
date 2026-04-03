@@ -1,4 +1,14 @@
 {
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://asvneudbrlaymaocjebs.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_mJSTn6eP1t-KaZTcsJmphw_vD5WCBbg",
