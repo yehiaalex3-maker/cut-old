@@ -1,68 +1,111 @@
-import { useState } from "react";
-import LoadingSpinner from "../components/LoadingSpinner";
-import { exportProjectToExcel, exportToCSV } from "../lib/exportService";
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { FileSpreadsheet, Download, CheckCircle, FileText, Table } from 'lucide-react';
+import { motion } from 'framer-motion';
+import Header from '../components/Header';
+import LoadingSpinner from '../components/LoadingSpinner';
+import type { Unit, CuttingSettings } from '../types';
+import { calculateCutList, DEFAULT_CUTTING_SETTINGS } from '../lib/calculations';
+import { exportToExcel } from '../lib/exportExcel';
 
-export default function ExportPage({ projectName }: { onMenuToggle?: () => void, projectName?: string }) {
-  const [loading, setLoading] = useState(false);
+export default function ExportPage({ onMenuToggle, projectName }: { onMenuToggle: () => void; projectName?: string }) {
+  const { projectId } = useParams();
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [settings, setSettings] = useState<CuttingSettings>(DEFAULT_CUTTING_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [exported, setExported] = useState(false);
 
-  const handleExportExcel = async () => {
-    setLoading(true);
-    try {
-      // بيانات تجريبية
-      const data: any = [
-        { name: "القطعة 1", width: 100, height: 50, quantity: 2 },
-        { name: "القطعة 2", width: 80, height: 60, quantity: 1 },
-      ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [unitsRes, settingsRes] = await Promise.all([
+          fetch(`/api/units?project_id=${projectId}`),
+          fetch(`/api/settings?project_id=${projectId}`),
+        ]);
+        const unitsData = await unitsRes.json();
+        const settingsData = await settingsRes.json();
+        setUnits(Array.isArray(unitsData) ? unitsData : []);
+        if (settingsData) setSettings({ ...DEFAULT_CUTTING_SETTINGS, ...settingsData });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [projectId]);
 
-      // @ts-ignore
-      await exportProjectToExcel(projectName, data);
-      alert("✅ تم التصدير بنجاح!");
-    } catch (error) {
-      console.error("خطأ:", error);
-      alert("❌ حدث خطأ في التصدير");
-    } finally {
-      setLoading(false);
-    }
+  const pieces = calculateCutList(units, settings);
+
+  const handleExport = () => {
+    exportToExcel(pieces, units, settings, projectName || 'Project');
+    setExported(true);
+    setTimeout(() => setExported(false), 3000);
   };
 
-  const handleExportCSV = () => {
-    try {
-      const data = [
-        { name: "القطعة 1", width: 100, height: 50, quantity: 2 },
-        { name: "القطعة 2", width: 80, height: 60, quantity: 1 },
-      ];
-
-      // @ts-ignore
-      exportToCSV(data, projectName);
-      alert("✅ تم التصدير بنجاح!");
-    } catch (error) {
-      console.error("خطأ:", error);
-      alert("❌ حدث خطأ في التصدير");
-    }
-  };
+  if (loading) return <div className="page"><LoadingSpinner /></div>;
 
   return (
-    <div className="p-6">
-      {loading && <LoadingSpinner />}
+    <div className="page">
+      <Header title="تصدير Excel" subtitle={`مشروع: ${projectName}`} onMenuToggle={onMenuToggle} />
 
-      <h1 className="text-2xl font-bold mb-6">تصدير المشروع: {projectName}</h1>
+      <div className="page-content">
+        <div className="export-container">
+          <motion.div className="export-hero" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="export-icon-wrap">
+              <FileSpreadsheet size={64} />
+            </div>
+            <h2>تصدير قائمة القطع</h2>
+            <p>تصدير جميع مقاسات القطع الخشبية إلى ملف Excel جاهز للاستخدام في برامج التقطيع الذكية</p>
 
-      <div className="space-y-4">
-        <button
-          onClick={handleExportExcel}
-          disabled={loading}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
-        >
-          📥 تصدير إلى Excel
-        </button>
+            <div className="export-stats">
+              <div className="export-stat">
+                <span className="export-stat-num">{units.length}</span>
+                <span className="export-stat-label">وحدة</span>
+              </div>
+              <div className="export-stat">
+                <span className="export-stat-num">{pieces.length}</span>
+                <span className="export-stat-label">نوع قطعة</span>
+              </div>
+              <div className="export-stat">
+                <span className="export-stat-num">{pieces.reduce((s, p) => s + p.quantity, 0)}</span>
+                <span className="export-stat-label">قطعة إجمالي</span>
+              </div>
+            </div>
 
-        <button
-          onClick={handleExportCSV}
-          disabled={loading}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-        >
-          📥 تصدير إلى CSV
-        </button>
+            <button
+              className={`export-btn ${exported ? 'success' : ''}`}
+              onClick={handleExport}
+              disabled={units.length === 0}
+            >
+              {exported ? (
+                <><CheckCircle size={20} /><span>تم التصدير بنجاح!</span></>
+              ) : (
+                <><Download size={20} /><span>تحميل ملف Excel</span></>
+              )}
+            </button>
+
+            {units.length === 0 && (
+              <p className="export-warning">⚠️ لا توجد وحدات. أضف وحدات أولاً من صفحة تفريغ المقاسات</p>
+            )}
+          </motion.div>
+
+          <div className="export-info-cards">
+            <motion.div className="export-info-card" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
+              <Table size={24} />
+              <h4>ورقة قائمة القطع</h4>
+              <p>جميع القطع مع الأبعاد والكميات وأكواد الشريط</p>
+            </motion.div>
+            <motion.div className="export-info-card" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+              <FileText size={24} />
+              <h4>ورقة ملخص الوحدات</h4>
+              <p>قائمة بجميع الوحدات مع مواصفاتها الكاملة</p>
+            </motion.div>
+            <motion.div className="export-info-card" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
+              <FileSpreadsheet size={24} />
+              <h4>ورقة التكلفة</h4>
+              <p>تفصيل تكلفة المشروع بناءً على الأسعار المدخلة</p>
+            </motion.div>
+          </div>
+        </div>
       </div>
     </div>
   );
