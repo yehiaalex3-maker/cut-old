@@ -4,7 +4,6 @@ import { Plus, Trash2, Edit2, Copy, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../components/Header';
 import LoadingSpinner from '../components/LoadingSpinner';
-import supabase from '../lib/supabase';
 import type { Unit } from '../types';
 
 const UNIT_CATEGORIES = {
@@ -67,14 +66,9 @@ export default function UnitsPage({ onMenuToggle, projectName }: { onMenuToggle:
 
   const fetchUnits = async () => {
     try {
-      const { data, error } = await supabase
-        .from('units')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('sort_order', { ascending: true });
-      
-      if (error) throw error;
-      setUnits(data || []);
+      const res = await fetch(`/api/units?project_id=${projectId}`);
+      const data = await res.json();
+      setUnits(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -100,15 +94,12 @@ export default function UnitsPage({ onMenuToggle, projectName }: { onMenuToggle:
 
   const handleDuplicate = async (u: Unit) => {
     const { id, created_at, ...rest } = u;
-    try {
-      const { error } = await supabase
-        .from('units')
-        .insert({ ...rest, sort_order: units.length });
-      if (error) throw error;
-      fetchUnits();
-    } catch (err) {
-      console.error(err);
-    }
+    await fetch('/api/units', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...rest, sort_order: units.length }),
+    });
+    fetchUnits();
   };
 
   const handleSave = async () => {
@@ -119,22 +110,20 @@ export default function UnitsPage({ onMenuToggle, projectName }: { onMenuToggle:
     setSaving(true);
     try {
       if (editUnit) {
-        const { error } = await supabase
-          .from('units')
-          .update(form)
-          .eq('id', editUnit.id);
-        if (error) throw error;
+        await fetch('/api/units', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editUnit.id, ...form }),
+        });
       } else {
-        const { error } = await supabase
-          .from('units')
-          .insert(form);
-        if (error) throw error;
+        await fetch('/api/units', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        });
       }
       setShowModal(false);
       fetchUnits();
-    } catch (err: any) {
-      console.error(err);
-      alert('حدث خطأ أثناء حفظ الوحدة: ' + (err.message || JSON.stringify(err)));
     } finally {
       setSaving(false);
     }
@@ -142,16 +131,12 @@ export default function UnitsPage({ onMenuToggle, projectName }: { onMenuToggle:
 
   const handleDelete = async (id: number) => {
     if (!confirm('هل أنت متأكد من حذف هذه الوحدة؟')) return;
-    try {
-      const { error } = await supabase
-        .from('units')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      fetchUnits();
-    } catch (err) {
-      console.error(err);
-    }
+    await fetch('/api/units', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    fetchUnits();
   };
 
   const setUnitType = (type: string) => {

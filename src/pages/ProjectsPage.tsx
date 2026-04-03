@@ -4,7 +4,6 @@ import { Plus, Folder, Trash2, Edit2, ChevronLeft, Calendar, User } from 'lucide
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../components/Header';
 import LoadingSpinner from '../components/LoadingSpinner';
-import supabase from '../lib/supabase';
 import type { Project } from '../types';
 
 export default function ProjectsPage({ onMenuToggle }: { onMenuToggle: () => void }) {
@@ -12,49 +11,17 @@ export default function ProjectsPage({ onMenuToggle }: { onMenuToggle: () => voi
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
-  const [userGroups, setUserGroups] = useState<{id: number, name: string}[]>([]);
-  const [form, setForm] = useState({ name: '', client_name: '', notes: '', group_id: null as number | null });
+  const [form, setForm] = useState({ name: '', client_name: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
   const fetchProjects = async () => {
     try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('No user found in fetchProjects');
-        return;
-      }
-
-      // fetch user groups
-      const { data: ugData, error: ugError } = await supabase
-        .from('user_groups')
-        .select('group_id, groups(id, name)')
-        .eq('user_id', user.id);
-      
-      if (ugError) console.error('Groups Fetch Error:', ugError);
-
-      const flatGroups = (ugData || []).map((ug: any) => ug.groups).filter(Boolean);
-      setUserGroups(flatGroups);
-      const groupIds = flatGroups.map((g: any) => g.id);
-
-      console.log('Fetching projects for user:', user.id, 'Groups:', groupIds);
-
-      let query = supabase.from('projects').select('*');
-      if (groupIds.length > 0) {
-        query = query.or(`user_id.eq.${user.id},group_id.in.(${groupIds.join(',')})`);
-      } else {
-        query = query.eq('user_id', user.id);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      console.log('Projects fetched:', data?.length || 0);
-      setProjects(data || []);
-    } catch (err: any) {
-      console.error('Fetch Projects Error:', err);
-      alert('خطأ في جلب المشاريع: ' + err.message);
+      const res = await fetch('/api/projects');
+      const data = await res.json();
+      setProjects(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -64,76 +31,50 @@ export default function ProjectsPage({ onMenuToggle }: { onMenuToggle: () => voi
 
   const openCreate = () => {
     setEditProject(null);
-    setForm({ name: '', client_name: '', notes: '', group_id: null });
+    setForm({ name: '', client_name: '', notes: '' });
     setShowModal(true);
   };
 
   const openEdit = (p: Project, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditProject(p);
-    setForm({ name: p.name, client_name: p.client_name || '', notes: p.notes || '', group_id: p.group_id || null });
+    setForm({ name: p.name, client_name: p.client_name || '', notes: p.notes || '' });
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) {
-      alert('يرجى إدخال اسم المشروع أولاً');
-      return;
-    }
+    if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('لم يتم العثور على بيانات المستخدم. يرجى إعادة تسجيل الدخول.');
-      }
-
-      console.log('Attempting to save project:', { ...form, user_id: user.id });
-
-      let error;
       if (editProject) {
-        const { error: err } = await supabase
-          .from('projects')
-          .update(form)
-          .eq('id', editProject.id);
-        error = err;
+        await fetch('/api/projects', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editProject.id, ...form }),
+        });
       } else {
-        const { error: err } = await supabase
-          .from('projects')
-          .insert({ ...form, user_id: user.id });
-        error = err;
+        await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        });
       }
-
-      if (error) {
-        console.error('Supabase Save Error:', error);
-        throw error;
-      }
-
-      alert(editProject ? 'تم تحديث المشروع بنجاح' : 'تم إنشاء المشروع بنجاح');
       setShowModal(false);
       fetchProjects();
-    } catch (err: any) {
-      console.error('Project Save Error:', err);
-      const msg = err.message || JSON.stringify(err);
-      alert('حدث خطأ أثناء حفظ المشروع: ' + msg);
     } finally {
       setSaving(false);
     }
   };
 
-
   const handleDelete = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm('هل أنت متأكد من حذف هذا المشروع؟')) return;
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      fetchProjects();
-    } catch (err) {
-      console.error(err);
-    }
+    await fetch('/api/projects', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    fetchProjects();
   };
 
   return (
@@ -255,21 +196,6 @@ export default function ProjectsPage({ onMenuToggle }: { onMenuToggle: () => voi
                   rows={3}
                 />
               </div>
-              {userGroups.length > 0 && (
-                <div className="form-group">
-                  <label>مشاركة مع مجموعة</label>
-                  <select
-                    value={form.group_id || ''}
-                    onChange={e => setForm({ ...form, group_id: e.target.value ? Number(e.target.value) : null })}
-                    style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1px solid #ddd', fontFamily: 'inherit' }}
-                  >
-                    <option value="">لا يوجد (خاص بي فقط)</option>
-                    {userGroups.map(g => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
               <div className="modal-actions">
                 <button className="btn-secondary" onClick={() => setShowModal(false)}>إلغاء</button>
                 <button className="btn-primary" onClick={handleSave} disabled={saving}>

@@ -1,7 +1,5 @@
 export interface Project {
   id: number;
-  user_id?: string;
-  group_id?: number | null;
   name: string;
   client_name?: string;
   notes?: string;

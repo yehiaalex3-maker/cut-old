@@ -4,7 +4,6 @@ import { Plus, Trash2, Edit2, Layers, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../components/Header';
 import LoadingSpinner from '../components/LoadingSpinner';
-import supabase from '../lib/supabase';
 
 interface Board {
   id: number;
@@ -45,14 +44,9 @@ export default function BoardsPage({ onMenuToggle, projectName }: { onMenuToggle
 
   const fetchBoards = async () => {
     try {
-      const { data, error } = await supabase
-        .from('boards_settings')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('sort_order', { ascending: true });
-      
-      if (error) throw error;
-      setBoards(data || []);
+      const res = await fetch(`/api/boards?project_id=${projectId}`);
+      const data = await res.json();
+      setBoards(Array.isArray(data) ? data : []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -76,37 +70,19 @@ export default function BoardsPage({ onMenuToggle, projectName }: { onMenuToggle
     setSaving(true);
     try {
       if (editBoard) {
-        const { error } = await supabase
-          .from('boards_settings')
-          .update(form)
-          .eq('id', editBoard.id);
-        if (error) throw error;
+        await fetch('/api/boards', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editBoard.id, ...form }) });
       } else {
-        const { error } = await supabase
-          .from('boards_settings')
-          .insert({ ...form, sort_order: boards.length });
-        if (error) throw error;
+        await fetch('/api/boards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, sort_order: boards.length }) });
       }
       setShowModal(false);
       fetchBoards();
-    } catch (err: any) {
-      console.error(err);
-      alert('حدث خطأ أثناء حفظ اللوح: ' + (err.message || JSON.stringify(err)));
     } finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('حذف هذا اللوح؟')) return;
-    try {
-      const { error } = await supabase
-        .from('boards_settings')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      fetchBoards();
-    } catch (err) {
-      console.error(err);
-    }
+    await fetch('/api/boards', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+    fetchBoards();
   };
 
   const f = (v: any) => (typeof v === 'number' ? v : Number(v) || 0);
