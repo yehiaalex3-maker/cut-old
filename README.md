@@ -21,12 +21,20 @@ npm install
 
 ### 2. إعداد متغيرات البيئة
 
-تأكد من وجود ملف `.env` في جذر المشروع يحتوي على:
+انسخ ملف `.env` وعدّل القيم:
+
+```bash
+# أنشئ ملف .env في جذر المشروع
+```
+
+محتوى ملف `.env`:
 
 ```
-VITE_SUPABASE_URL=https://asvneudbrlaymaocjebs.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_mJSTn6eP1t-KaZTcsJmphw_vD5WCBbg
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
+
+> ابحث عن هذه القيم في **Supabase Dashboard → Project Settings → API**
 
 ### 3. تشغيل بيئة التطوير
 

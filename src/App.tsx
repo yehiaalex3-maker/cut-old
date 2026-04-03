@@ -17,6 +17,8 @@ import PwaInstallBanner from './components/PwaInstallBanner';
 import SiteLogo from './components/SiteLogo';
 import type { Project } from './types';
 
+const isSupabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+
 handleGoogleRedirect();
 
 interface UserProfile {
@@ -29,7 +31,21 @@ interface UserProfile {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then((reg) => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker?.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              if (confirm('تحديث متوفر! هل ترغب في إعادة تحميل الصفحة لرؤية التغييرات؟')) {
+                window.location.reload();
+              }
+            }
+          });
+        });
+      }).catch(() => {});
+    }
+
   });
 }
 
@@ -48,11 +64,8 @@ function ProjectWrapper({
 
   useEffect(() => {
     if (projectId) {
-      fetch('/api/projects')
-        .then(r => r.json())
-        .then((list: Project[]) => {
-          setProject(list.find(p => p.id === Number(projectId)) || null);
-        });
+      supabase.from('projects').select('*').eq('id', projectId).single()
+        .then(({ data }) => setProject(data));
     }
   }, [projectId]);
 
@@ -123,24 +136,36 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Session error:', error);
+        // If session is "in the future", it might be a clock issue
+        if (error.message?.includes('future')) {
+          console.warn('Clock skew detected. Attempting to compensate...');
+        }
+      }
       setSession(session);
       if (session?.user) fetchProfile(session.user.id);
       else setAuthLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state change:', event, !!session);
       setSession(session);
       if (session?.user) fetchProfile(session.user.id);
-      else { setUserProfile(null); setAuthLoading(false); }
+      else { 
+        setUserProfile(null); 
+        if (event === 'SIGNED_OUT') setAuthLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+
   const fetchProfile = async (userId: string) => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('users_profile')
         .select('*')
         .eq('id', userId)
@@ -149,23 +174,42 @@ export default function App() {
       if (data) {
         setUserProfile(data);
       } else {
-        const { data: { user } } = await supabase.auth.getUser();
+        // Profile not found (PGRST116) – create it
+        if (error && error.code !== 'PGRST116') {
+          console.error('Profile fetch error:', error);
+        }
+
+        const { data: userData } = await supabase.auth.getUser();
+        const user = userData?.user;
         if (user) {
           const newProfile = {
             id: user.id,
             email: user.email || '',
-            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم',
+            full_name:
+              user.user_metadata?.full_name ||
+              user.user_metadata?.name ||
+              user.email?.split('@')[0] ||
+              'مستخدم',
             role: 'user',
             is_active: true,
           };
-          await supabase.from('users_profile').insert(newProfile);
+          // Use upsert to avoid duplicate key errors on race conditions
+          const { error: upsertErr } = await supabase
+            .from('users_profile')
+            .upsert(newProfile, { onConflict: 'id' });
+          if (upsertErr) {
+            console.error('Profile upsert error:', upsertErr);
+          }
           setUserProfile(newProfile as UserProfile);
         }
       }
+    } catch (err) {
+      console.error('fetchProfile unexpected error:', err);
     } finally {
       setAuthLoading(false);
     }
   };
+
 
   /* ── Loading screen ── */
   if (authLoading) {
@@ -228,8 +272,17 @@ export default function App() {
 
   const isAdmin = userProfile?.role === 'admin';
 
+
   return (
     <BrowserRouter>
+      {!isSupabaseConfigured && (
+        <div style={{
+          background: '#ef4444', color: 'white', padding: '12px', textAlign: 'center',
+          fontSize: '14px', fontWeight: 'bold', position: 'sticky', top: 0, zIndex: 9999
+        }}>
+          ⚠️ تنبيه: بيانات اتصال Supabase غير مكتملة في ملف .env - الموقع لن يعمل بشكل صحيح!
+        </div>
+      )}
       <PwaInstallBanner />
       <Routes>
         <Route path="/"
