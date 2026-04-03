@@ -82,7 +82,7 @@ function ProjectWrapper({
   );
 }
 
-/* ── Home / Admin wrapper ── */
+/* ── Simple pages wrapper (home / admin) ── */
 function SimpleWrapper({
   component: Component,
   userProfile,
@@ -140,7 +140,12 @@ export default function App() {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data } = await supabase.from('users_profile').select('*').eq('id', userId).single();
+      const { data } = await supabase
+        .from('users_profile')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
       if (data) {
         setUserProfile(data);
       } else {
@@ -162,38 +167,57 @@ export default function App() {
     }
   };
 
-  /* Loading */
+  /* ── Loading screen ── */
   if (authLoading) {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        minHeight: '100vh', background: '#0d2b20', flexDirection: 'column', gap: 20
+        minHeight: '100vh', background: '#0d2b20',
+        flexDirection: 'column', gap: 24,
       }}>
         <SiteLogo size={64} showText={true} />
-        <div className="spinner" style={{ borderColor: 'rgba(255,255,255,0.15)', borderTopColor: '#00b5a3' }} />
+        <div className="spinner" style={{
+          borderColor: 'rgba(255,255,255,0.12)',
+          borderTopColor: '#00b5a3',
+        }} />
       </div>
     );
   }
 
-  /* Not logged in */
+  /* ── Not logged in ── */
   if (!session) {
-    return <BrowserRouter><AuthPage onAuth={() => {}} /></BrowserRouter>;
+    return (
+      <BrowserRouter>
+        <AuthPage onAuth={() => {}} />
+      </BrowserRouter>
+    );
   }
 
-  /* Account suspended */
+  /* ── Account suspended ── */
   if (userProfile && !userProfile.is_active) {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        minHeight: '100vh', fontFamily: 'Tajawal, sans-serif', background: '#f4f3ee'
+        minHeight: '100vh', fontFamily: 'Tajawal, sans-serif', background: '#f5f4ef',
       }}>
-        <div style={{ background: '#fff', padding: 40, borderRadius: 18, textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', maxWidth: 380 }}>
+        <div style={{
+          background: '#fff', padding: 40, borderRadius: 18,
+          textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', maxWidth: 380,
+        }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-          <h2 style={{ color: '#ef4444', marginBottom: 12, fontSize: 20, fontWeight: 800 }}>الحساب موقوف</h2>
-          <p style={{ color: '#6b7280', marginBottom: 24, fontSize: 14 }}>تم تعليق حسابك. تواصل مع المدير للمزيد من المعلومات.</p>
+          <h2 style={{ color: '#ef4444', marginBottom: 12, fontSize: 20, fontWeight: 800 }}>
+            الحساب موقوف
+          </h2>
+          <p style={{ color: '#6b7280', marginBottom: 24, fontSize: 14 }}>
+            تم تعليق حسابك. تواصل مع المدير للمزيد من المعلومات.
+          </p>
           <button
             onClick={() => supabase.auth.signOut()}
-            style={{ padding: '10px 28px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontFamily: 'Tajawal, sans-serif', fontSize: 14, fontWeight: 700 }}
+            style={{
+              padding: '10px 28px', background: '#ef4444', color: 'white',
+              border: 'none', borderRadius: 10, cursor: 'pointer',
+              fontFamily: 'Tajawal, sans-serif', fontSize: 14, fontWeight: 700,
+            }}
           >
             تسجيل الخروج
           </button>
@@ -208,18 +232,36 @@ export default function App() {
     <BrowserRouter>
       <PwaInstallBanner />
       <Routes>
-        <Route path="/" element={<SimpleWrapper component={ProjectsPage} userProfile={userProfile} />} />
-        <Route path="/admin" element={isAdmin
-          ? <SimpleWrapper component={AdminPage} userProfile={userProfile} />
-          : <Navigate to="/" />}
+        <Route path="/"
+          element={<SimpleWrapper component={ProjectsPage} userProfile={userProfile} />}
         />
-        <Route path="/project/:projectId/units"       element={<ProjectWrapper component={UnitsPage}       userProfile={userProfile} />} />
-        <Route path="/project/:projectId/cutlist"     element={<ProjectWrapper component={CutListPage}     userProfile={userProfile} />} />
-        <Route path="/project/:projectId/boards"      element={<ProjectWrapper component={BoardsPage}      userProfile={userProfile} />} />
-        <Route path="/project/:projectId/accessories" element={<ProjectWrapper component={AccessoriesPage} userProfile={userProfile} />} />
-        <Route path="/project/:projectId/settings"    element={<ProjectWrapper component={SettingsPage}    userProfile={userProfile} />} />
-        <Route path="/project/:projectId/cost"        element={<ProjectWrapper component={CostPage}        userProfile={userProfile} />} />
-        <Route path="/project/:projectId/export"      element={<ProjectWrapper component={ExportPage}      userProfile={userProfile} />} />
+        <Route path="/admin"
+          element={isAdmin
+            ? <SimpleWrapper component={AdminPage} userProfile={userProfile} />
+            : <Navigate to="/" />
+          }
+        />
+        <Route path="/project/:projectId/units"
+          element={<ProjectWrapper component={UnitsPage} userProfile={userProfile} />}
+        />
+        <Route path="/project/:projectId/cutlist"
+          element={<ProjectWrapper component={CutListPage} userProfile={userProfile} />}
+        />
+        <Route path="/project/:projectId/boards"
+          element={<ProjectWrapper component={BoardsPage} userProfile={userProfile} />}
+        />
+        <Route path="/project/:projectId/accessories"
+          element={<ProjectWrapper component={AccessoriesPage} userProfile={userProfile} />}
+        />
+        <Route path="/project/:projectId/settings"
+          element={<ProjectWrapper component={SettingsPage} userProfile={userProfile} />}
+        />
+        <Route path="/project/:projectId/cost"
+          element={<ProjectWrapper component={CostPage} userProfile={userProfile} />}
+        />
+        <Route path="/project/:projectId/export"
+          element={<ProjectWrapper component={ExportPage} userProfile={userProfile} />}
+        />
       </Routes>
     </BrowserRouter>
   );

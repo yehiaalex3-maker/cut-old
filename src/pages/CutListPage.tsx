@@ -5,12 +5,12 @@ import Header from '../components/Header';
 import LoadingSpinner from '../components/LoadingSpinner';
 import type { Unit, CuttingSettings, CutPiece } from '../types';
 import { calculateCutList, DEFAULT_CUTTING_SETTINGS } from '../lib/calculations';
-import { exportToExcel } from '../lib/exportExcel';
+import { exportProjectToExcel } from '../lib/exportService';
 
 export default function CutListPage({ onMenuToggle, projectName }: { onMenuToggle: () => void; projectName: string }) {
   const { projectId } = useParams();
   const [units, setUnits] = useState<Unit[]>([]);
-  const [settings, setSettings] = useState<CuttingSettings>(DEFAULT_CUTTING_SETTINGS);
+  const [, setSettings] = useState<CuttingSettings>(DEFAULT_CUTTING_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [filterMaterial, setFilterMaterial] = useState('الكل');
   const [pieces, setPieces] = useState<CutPiece[]>([]);
@@ -42,7 +42,13 @@ export default function CutListPage({ onMenuToggle, projectName }: { onMenuToggl
   const filtered = filterMaterial === 'الكل' ? pieces : pieces.filter(p => p.material === filterMaterial);
 
   const handleExport = () => {
-    exportToExcel(pieces, units, settings, projectName);
+    const exportData = pieces.map(p => ({
+      name: `${p.unit_name} - ${p.piece_name}`,
+      width: p.width,
+      height: p.height,
+      quantity: p.quantity
+    }));
+    exportProjectToExcel(projectName, exportData);
   };
 
   const totalPieces = filtered.reduce((sum, p) => sum + p.quantity, 0);
